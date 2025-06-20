@@ -1,0 +1,52 @@
+from datetime import datetime
+from app import db
+from flask_bcrypt import Bcrypt
+
+bcrypt = Bcrypt()
+
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(64), index=True, unique=True, nullable=False)
+    email = db.Column(db.String(120), index=True, unique=True, nullable=False)
+    password_hash = db.Column(db.String(128))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+    is_admin = db.Column(db.Boolean, default=False)
+
+    agents = db.relationship('Agent', backref='owner', lazy='dynamic')
+
+    def set_password(self, password):
+        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+
+    def check_password(self, password):
+        return bcrypt.check_password_hash(self.password_hash, password)
+
+
+class Agent(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    description = db.Column(db.Text)
+    system_prompt = db.Column(db.Text, nullable=False)
+    model = db.Column(db.String(64), default='gpt-3.5-turbo')
+    temperature = db.Column(db.Float, default=0.7)
+    max_tokens = db.Column(db.Integer, default=1000)
+    is_public = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    executions = db.relationship('AgentExecution', backref='agent', lazy='dynamic')
+
+
+class AgentExecution(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    input = db.Column(db.Text, nullable=False)
+    output = db.Column(db.Text)
+    status = db.Column(db.String(32), default='pending')  # pending, running, completed, failed
+    start_time = db.Column(db.DateTime, default=datetime.utcnow)
+    end_time = db.Column(db.DateTime)
+    agent_id = db.Column(db.Integer, db.ForeignKey('agent.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    user = db.relationship('User', backref='executions')

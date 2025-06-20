@@ -1,0 +1,7 @@
+flask==2.3.2
+flask-sqlalchemy==3.0.3
+flask-migrate==4.0.4
+flask-jwt-extended==4.4.4
+flask-bcrypt==1.0.1
+python-dotenv==1.0.0
+openai==0.27.8
