@@ -1,29 +1,38 @@
 import os
 from pathlib import Path
-
+from datetime import timedelta
 from dotenv import load_dotenv
 
+# 加载环境变量
 load_dotenv()
-load_dotenv('.env')
+
 
 class Config:
-    SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-here')
+    # 安全配置
+    SECRET_KEY = os.getenv('SECRET_KEY')
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
 
-    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:root@localhost:3307/df'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False  # 禁用事件系统
+    # OpenAI
+    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
-    # 添加连接池配置
+    # 数据库配置
+    SQLALCHEMY_DATABASE_URI = (
+        f"{os.getenv('DB_ENGINE')}://"
+        f"{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@"
+        f"{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/"
+        f"{os.getenv('DB_NAME')}"
+    )
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 5,
-        'pool_recycle': 3600,
-        'pool_pre_ping': True,
+        'pool_size': int(os.getenv('DB_POOL_SIZE', '5')),
+        'pool_recycle': int(os.getenv('DB_POOL_RECYCLE', '3600')),
+        'pool_pre_ping': os.getenv('DB_POOL_PRE_PING', 'True').lower() == 'true',
         'connect_args': {
-            'connect_timeout': 5  # 连接超时设置
+            'connect_timeout': int(os.getenv('DB_CONNECT_TIMEOUT', '5'))
         }
     }
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key-here')
-    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
 
-    # 其他配置
-    MAX_AGENT_COUNT_PER_USER = 50
-    AGENT_EXECUTION_TIMEOUT = 30  # 秒
+    # 业务配置
+    MAX_AGENT_COUNT_PER_USER = int(os.getenv('MAX_AGENT_COUNT_PER_USER', '50'))
+    AGENT_EXECUTION_TIMEOUT = int(os.getenv('AGENT_EXECUTION_TIMEOUT', '30'))

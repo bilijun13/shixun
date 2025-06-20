@@ -20,8 +20,7 @@ dify_backend/
 │   │   └── auth_service.py # 认证业务逻辑
 │   └── utils/
 │       ├── __init__.py     # 工具包初始化
-│       ├── auth.py         # 认证相关工具函数
-│       └── helpers.py      # 通用辅助函数
+│       └── auth.py         # 认证相关工具函数
 ├── config.py               # 应用配置
 ├── requirements.txt        # 依赖列表
 └── run.py                  # 应用入口
