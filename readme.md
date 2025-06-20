@@ -29,7 +29,7 @@ dify_backend/
 
 sql表创建语句
 -- 用户表（核心）
-CREATE TABLE `users` (
+CREATE TABLE `user` (
   `id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(64) NOT NULL,
   `email` varchar(120) NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- 智能体表（核心业务）
-CREATE TABLE `agents` (
+CREATE TABLE `agent` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(128) NOT NULL,
   `description` text,
@@ -61,7 +61,7 @@ CREATE TABLE `agents` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- 智能体执行记录表（业务日志）
-CREATE TABLE `agent_executions` (
+CREATE TABLE `agent_execution` (
   `id` int NOT NULL AUTO_INCREMENT,
   `input` text NOT NULL,
   `output` text,
@@ -78,7 +78,7 @@ CREATE TABLE `agent_executions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- 新增：智能体版本表（扩展功能）
-CREATE TABLE `agent_versions` (
+CREATE TABLE `agent_version` (
   `id` int NOT NULL AUTO_INCREMENT,
   `version_name` varchar(64) NOT NULL,
   `config_snapshot` json NOT NULL,
