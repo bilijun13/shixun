@@ -6,6 +6,7 @@ bcrypt = Bcrypt()
 
 
 class User(db.Model):
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True, nullable=False)
     email = db.Column(db.String(120), index=True, unique=True, nullable=False)
@@ -24,6 +25,7 @@ class User(db.Model):
 
 
 class Agent(db.Model):
+    __tablename__ = 'agents'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
