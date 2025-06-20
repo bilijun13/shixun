@@ -5,6 +5,8 @@ from app.services.agent_service import AgentService
 agent_bp = Blueprint('agents', __name__)
 
 
+
+
 @agent_bp.route('/', methods=['POST'])
 @jwt_required()
 def create_agent():

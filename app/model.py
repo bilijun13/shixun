@@ -39,6 +39,22 @@ class Agent(db.Model):
     owner = db.relationship('User', back_populates='agent')
     execution = db.relationship('AgentExecution', backref='agent', lazy='dynamic')
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'name': self.name,
+            'system_prompt': self.system_prompt,
+            'description': self.description,
+            'model': self.model,
+            'temperature': self.temperature,
+            'max_tokens': self.max_tokens,
+            'is_public': self.is_public,
+            # 其他需要返回的字段...
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
 
 class AgentExecution(db.Model):
     id = db.Column(db.Integer, primary_key=True)
