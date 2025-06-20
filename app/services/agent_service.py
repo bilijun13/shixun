@@ -1,5 +1,5 @@
 from app import db
-from app.models import Agent, AgentExecution
+from app.model import Agent, AgentExecution
 from datetime import datetime
 
 

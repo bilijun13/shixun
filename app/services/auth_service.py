@@ -1,5 +1,5 @@
 from flask_bcrypt import Bcrypt
-from app.models import User
+from app.model import User
 from app import db
 from datetime import datetime
 

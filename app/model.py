@@ -6,7 +6,7 @@ bcrypt = Bcrypt()
 
 
 class User(db.Model):
-    __tablename__ = 'users'
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True, nullable=False)
     email = db.Column(db.String(120), index=True, unique=True, nullable=False)
@@ -15,7 +15,7 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     is_admin = db.Column(db.Boolean, default=False)
 
-    agents = db.relationship('Agent', backref='owner', lazy='dynamic')
+    agent = db.relationship('Agent', back_populates='owner')
 
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
@@ -25,7 +25,6 @@ class User(db.Model):
 
 
 class Agent(db.Model):
-    __tablename__ = 'agents'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
@@ -37,8 +36,8 @@ class Agent(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-    executions = db.relationship('AgentExecution', backref='agent', lazy='dynamic')
+    owner = db.relationship('User', back_populates='agent')
+    execution = db.relationship('AgentExecution', backref='agent', lazy='dynamic')
 
 
 class AgentExecution(db.Model):
