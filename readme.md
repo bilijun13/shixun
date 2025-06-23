@@ -17,10 +17,13 @@ dify_backend/
 │   ├── services/
 │   │   ├── __init__.py     # 服务层包初始化
 │   │   ├── agent_service.py # 智能体业务逻辑
+│   │   ├── tongyi_service.py  # API执行业务逻辑
 │   │   └── auth_service.py # 认证业务逻辑
 │   └── utils/
 │       ├── __init__.py     # 工具包初始化
+|       |—— extensions.py
 │       └── auth.py         # 认证相关工具函数
+|—— .env                    # 虚拟环境配置文件
 ├── config.py               # 应用配置
 ├── requirements.txt        # 依赖列表
 └── run.py                  # 应用入口
@@ -60,6 +63,7 @@ CREATE TABLE `agent` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- 智能体执行记录表（业务日志）
+-- 修改后的智能体执行记录表（添加自引用外键）
 CREATE TABLE `agent_execution` (
   `id` int NOT NULL AUTO_INCREMENT,
   `input` text NOT NULL,
@@ -69,11 +73,14 @@ CREATE TABLE `agent_execution` (
   `end_time` datetime DEFAULT NULL,
   `agent_id` int NOT NULL,
   `user_id` int NOT NULL,
+  `parent_execution_id` int DEFAULT NULL,  -- 新增的自引用外键字段
   PRIMARY KEY (`id`),
   KEY `agent_id` (`agent_id`),
   KEY `user_id` (`user_id`),
-  CONSTRAINT `agent_executions_ibfk_1` FOREIGN KEY (`agent_id`) REFERENCES `agents` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `agent_executions_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  KEY `parent_execution_id` (`parent_execution_id`),  -- 新增索引
+  CONSTRAINT `agent_execution_ibfk_1` FOREIGN KEY (`agent_id`) REFERENCES `agent` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `agent_execution_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `agent_execution_ibfk_3` FOREIGN KEY (`parent_execution_id`) REFERENCES `agent_execution` (`id`) ON DELETE SET NULL  -- 新增自引用外键约束
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- 新增：智能体版本表（扩展功能）
