@@ -15,36 +15,22 @@ def execute_agent(agent_id):
     if 'input' not in data:
         return jsonify({"error": "Missing input"}), 400
 
-    # 创建执行记录
-    execution = AgentService.create_execution(
-        user_id=user_id,
-        agent_id=agent_id,
-        input_text=data['input']
-    )
+    try:
+        # 调用真实服务
+        ai_response, execution = AgentService.execute_agent(
+            user_id=user_id,
+            agent_id=agent_id,
+            user_input=data['input']
+        )
 
-    if not execution:
-        return jsonify({"error": "Agent not found or access denied"}), 404
+        return jsonify({
+            "execution_id": execution.id,
+            "output": ai_response,  # 真实AI响应
+            "status": execution.status
+        }), 200
 
-    # 模拟执行过程（实际应用中这里会调用真正的AI模型）
-    AgentService.update_execution_status(execution.id, 'running')
-
-    # 模拟处理时间
-    time.sleep(2)
-
-    # 模拟生成输出
-    output = f"Processed input: {data['input']}. This is a simulated response from agent {agent_id}."
-
-    # 更新执行结果
-    execution = AgentService.complete_execution(
-        execution_id=execution.id,
-        output=output
-    )
-
-    return jsonify({
-        "execution_id": execution.id,
-        "status": execution.status,
-        "output": execution.output
-    }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @api_bp.route('/execution/<int:execution_id>', methods=['GET'])

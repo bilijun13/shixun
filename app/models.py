@@ -67,3 +67,13 @@ class AgentExecution(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     user = db.relationship('User', backref='executions')
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "agent_id": self.agent_id,
+            "input": self.input,
+            "output": self.output,
+            "status": self.status,
+            "start_time": self.start_time.isoformat() if self.start_time else None
+        }

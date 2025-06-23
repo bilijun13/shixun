@@ -30,6 +30,8 @@ def create_app(config_class):
 
     from app.routes.auth_routes import auth_bp
     from app.routes.agent_routes import agent_bp
+    from app.routes.api_routes import api_bp
+    app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(agent_bp, url_prefix='/agents')
     # 根据你的实际路径调整
     app.register_blueprint(auth_bp, url_prefix='/auth')

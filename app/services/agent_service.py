@@ -94,6 +94,7 @@ class AgentService:
             user_id=user_id
         ).first()
 
+
     @staticmethod
     def create_agent(user_id, name, system_prompt, **kwargs):
         """创建agent并测试模型连接"""
@@ -134,8 +135,35 @@ class AgentService:
         if not agent:
             raise ValueError("Agent not found or access denied")
 
-        return TongyiService.generate_response(
-            agent=agent,
-            user_input=user_input,
-            execution_id=execution_id
+        # 创建执行记录（状态为running）
+        execution = AgentExecution(
+            agent_id=agent_id,
+            user_id=user_id,
+            input=user_input,
+            status='running'
         )
+        db.session.add(execution)
+        db.session.commit()
+
+        try:
+            # 调用真实AI服务
+            ai_response, _ = TongyiService.generate_response(
+                agent=agent,
+                user_input=user_input,
+                execution_id=execution_id
+            )
+
+            # 更新执行结果
+            execution.output = ai_response
+            execution.status = 'completed'
+            execution.end_time = datetime.utcnow()
+            db.session.commit()
+
+            return ai_response, execution
+
+        except Exception as e:
+            # 标记失败
+            execution.status = 'failed'
+            execution.error_message = str(e)
+            db.session.commit()
+            raise
