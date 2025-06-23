@@ -5,3 +5,4 @@ flask-jwt-extended==4.4.4
 flask-bcrypt==1.0.1
 python-dotenv==1.0.0
 openai==0.27.8
+dashscope

@@ -1,5 +1,5 @@
 from datetime import datetime
-from app import db
+from app.extensions import db
 from flask_bcrypt import Bcrypt
 
 bcrypt = Bcrypt()

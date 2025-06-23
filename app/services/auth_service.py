@@ -1,6 +1,6 @@
 from flask_bcrypt import Bcrypt
-from app.model import User
-from app import db
+from app.models import User
+from app.extensions import db
 from datetime import datetime
 
 bcrypt = Bcrypt()

@@ -15,7 +15,8 @@ class Config:
 
     # OpenAI
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-
+    # 通义
+    TONGYI_API_KEY = os.getenv('TONGYI_API_KEY')
     # 数据库配置
     SQLALCHEMY_DATABASE_URI = (
         f"{os.getenv('DB_ENGINE')}://"

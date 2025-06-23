@@ -22,7 +22,7 @@ def create_agent():
         name=data['name'],
         system_prompt=data['system_prompt'],
         description=data.get('description', ''),
-        model=data.get('model', 'gpt-3.5-turbo'),
+        model=data.get('model', 'qwen-turbo'),
         temperature=data.get('temperature', 0.7),
         max_tokens=data.get('max_tokens', 1000),
         is_public=data.get('is_public', False)
@@ -93,3 +93,49 @@ def list_agent_executions(agent_id):
         return jsonify({"error": "Agent not found or access denied"}), 404
 
     return jsonify([execution.to_dict() for execution in executions]), 200
+
+
+@agent_bp.route('/<int:agent_id>/execute', methods=['POST'])
+@jwt_required()
+def execute_agent(agent_id):
+    """执行Agent对话"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    if not data or 'input' not in data:
+        return jsonify({"error": "Missing input"}), 400
+
+    try:
+        response_text, execution = AgentService.execute_agent(
+            user_id=user_id,
+            agent_id=agent_id,
+            user_input=data['input'],
+            execution_id=data.get('execution_id')
+        )
+
+        return jsonify({
+            "success": True,
+            "output": response_text,
+            "execution_id": execution.id,
+            "status": execution.status
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@agent_bp.route('/models', methods=['GET'])
+@jwt_required()
+def list_available_models():
+    """获取可用的通义模型列表"""
+    return jsonify({
+        "models": [
+            {"id": "qwen-turbo", "name": "通义千问Turbo"},
+            {"id": "qwen-plus", "name": "通义千问Plus"},
+            {"id": "qwen-max", "name": "通义千问Max"},
+            {"id": "qwen-1.8b", "name": "通义千问1.8B"}
+        ]
+    }), 200

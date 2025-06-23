@@ -1,20 +1,11 @@
-from app import db
-from app.model import Agent, AgentExecution
+from app.extensions import db
+from app.models import Agent, AgentExecution
 from datetime import datetime
+
+from app.services.tongyi_service import TongyiService
 
 
 class AgentService:
-    @staticmethod
-    def create_agent(user_id, name, system_prompt, **kwargs):
-        agent = Agent(
-            user_id=user_id,
-            name=name,
-            system_prompt=system_prompt,
-            **kwargs
-        )
-        db.session.add(agent)
-        db.session.commit()
-        return agent
 
     @staticmethod
     def list_agents(user_id, public=False):
@@ -102,3 +93,49 @@ class AgentService:
             id=execution_id,
             user_id=user_id
         ).first()
+
+    @staticmethod
+    def create_agent(user_id, name, system_prompt, **kwargs):
+        """创建agent并测试模型连接"""
+        kwargs.setdefault('model', 'qwen-turbo')
+
+        agent = Agent(
+            user_id=user_id,
+            name=name,
+            system_prompt=system_prompt,
+            **kwargs
+        )
+        db.session.add(agent)
+        db.session.commit()
+
+        # 测试模型连接
+        try:
+            test_response, _ = TongyiService.generate_response(
+                agent=agent,
+                user_input="测试连接"
+            )
+            print(f"模型连接测试成功: {test_response}")
+        except Exception as e:
+            print(f"模型连接测试失败: {str(e)}")
+
+        return agent
+
+    @staticmethod
+    def execute_agent(user_id, agent_id, user_input, execution_id=None):
+        """
+        执行agent对话
+        :param user_id: 用户ID
+        :param agent_id: Agent ID
+        :param user_input: 用户输入
+        :param execution_id: 可选的执行ID（用于继续对话）
+        :return: (response_text, execution)
+        """
+        agent = Agent.query.filter_by(id=agent_id, user_id=user_id).first()
+        if not agent:
+            raise ValueError("Agent not found or access denied")
+
+        return TongyiService.generate_response(
+            agent=agent,
+            user_input=user_input,
+            execution_id=execution_id
+        )
