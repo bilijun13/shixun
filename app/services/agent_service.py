@@ -122,35 +122,59 @@ class AgentService:
         return agent
 
     @staticmethod
-    def execute_agent(user_id, agent_id, user_input, execution_id=None):
+    def execute_agent(user_id, agent_id, user_input, parent_execution_id=None):
         """
-        执行agent对话
+        执行Agent对话（支持多轮上下文）
         :param user_id: 用户ID
         :param agent_id: Agent ID
         :param user_input: 用户输入
-        :param execution_id: 可选的执行ID（用于继续对话）
+        :param parent_execution_id: 父级执行ID（用于上下文关联）
         :return: (response_text, execution)
         """
+        # 验证Agent归属
         agent = Agent.query.filter_by(id=agent_id, user_id=user_id).first()
         if not agent:
             raise ValueError("Agent not found or access denied")
 
-        # 创建执行记录（状态为running）
+        # 验证父级执行记录归属（如果存在）
+        if parent_execution_id:
+            parent = AgentExecution.query.filter_by(
+                id=parent_execution_id,
+                user_id=user_id
+            ).first()
+            if not parent:
+                raise ValueError("Parent execution not found")
+
+        # 创建执行记录
         execution = AgentExecution(
             agent_id=agent_id,
             user_id=user_id,
             input=user_input,
-            status='running'
+            status='processing',
+            parent_execution_id=parent_execution_id  # 关联上下文
         )
         db.session.add(execution)
         db.session.commit()
 
         try:
-            # 调用真实AI服务
-            ai_response, _ = TongyiService.generate_response(
+            # 获取对话历史（如果是多轮对话）
+            history_messages = []
+            if parent_execution_id:
+                history = AgentExecution.query.filter_by(
+                    id=parent_execution_id,
+                    user_id=user_id
+                ).first()
+                if history:
+                    history_messages.extend([
+                        {"role": "user", "content": history.input},
+                        {"role": "assistant", "content": history.output}
+                    ])
+
+            # 调用AI服务
+            ai_response = TongyiService.generate_response(
                 agent=agent,
                 user_input=user_input,
-                execution_id=execution_id
+                history_messages=history_messages
             )
 
             # 更新执行结果
@@ -162,7 +186,6 @@ class AgentService:
             return ai_response, execution
 
         except Exception as e:
-            # 标记失败
             execution.status = 'failed'
             execution.error_message = str(e)
             db.session.commit()

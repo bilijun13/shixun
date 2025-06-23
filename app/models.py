@@ -57,6 +57,8 @@ class Agent(db.Model):
 
 
 class AgentExecution(db.Model):
+    __tablename__ = 'agent_execution'  # 明确指定表名，避免潜在的表名不一致问题
+
     id = db.Column(db.Integer, primary_key=True)
     input = db.Column(db.Text, nullable=False)
     output = db.Column(db.Text)
@@ -66,7 +68,24 @@ class AgentExecution(db.Model):
     agent_id = db.Column(db.Integer, db.ForeignKey('agent.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
+
+    # 明确定义自引用外键
+    parent_execution_id = db.Column(
+        db.Integer,
+        db.ForeignKey('agent_execution.id'),  # 注意这里使用表名.id
+        nullable=True
+    )
+
+    # 关系定义
     user = db.relationship('User', backref='executions')
+
+    # 明确定义父子关系
+    children = db.relationship(
+        'AgentExecution',
+        backref=db.backref('parent', remote_side=[id]),  # 指定远程侧
+        foreign_keys=[parent_execution_id],  # 明确指定外键
+        lazy='dynamic'
+    )
 
     def to_dict(self):
         return {

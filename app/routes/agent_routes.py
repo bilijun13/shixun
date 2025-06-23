@@ -1,11 +1,42 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+
+from app import TongyiService
+from app.models import Agent, AgentExecution
 from app.services.agent_service import AgentService
 
 agent_bp = Blueprint('agents', __name__)
 
 
+# 示例：处理连续对话的路由
+@agent_bp.route('/chat', methods=['POST'])
+def chat():
+    data = request.get_json()
+    agent_id = data['agent_id']
+    user_input = data['input']
+    session_id = data.get('session_id')  # 关键：客户端需传递会话ID
 
+    agent = Agent.query.get(agent_id)
+
+    # 获取或创建执行记录链
+    if session_id:
+        parent_exec = AgentExecution.query.get(session_id)
+        if not parent_exec:
+            return jsonify({"error": "Invalid session_id"}), 400
+    else:
+        parent_exec = None
+
+    # 调用服务
+    response, execution = TongyiService.generate_response(
+        agent=agent,
+        user_input=user_input,
+        execution_id=parent_exec.id if parent_exec else None  # 关键参数
+    )
+
+    return jsonify({
+        "response": response,
+        "session_id": execution.id  # 返回新session_id供下次使用
+    })
 
 @agent_bp.route('/', methods=['POST'])
 @jwt_required()

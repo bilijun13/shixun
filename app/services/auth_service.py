@@ -1,5 +1,7 @@
 from flask_bcrypt import Bcrypt
-from app.models import User
+
+from app import TongyiService
+from app.models import User, AgentExecution, Agent
 from app.extensions import db
 from datetime import datetime
 
@@ -118,3 +120,50 @@ class AuthService:
         except Exception:
             db.session.rollback()
             return False
+
+    @staticmethod
+    def execute_agent(user_id, agent_id, user_input, execution_id=None):
+        agent = Agent.query.filter_by(id=agent_id, user_id=user_id).first()
+        if not agent:
+            raise ValueError("Agent not found or access denied")
+
+        # 获取历史对话（如果是后续提问）
+        history_messages = []
+        if execution_id:
+            parent_execution = AgentExecution.query.get(execution_id)
+            if parent_execution:
+                history_messages.extend([
+                    {"role": "user", "content": parent_execution.input},
+                    {"role": "assistant", "content": parent_execution.output}
+                ])
+
+        # 创建新执行记录
+        execution = AgentExecution(
+            agent_id=agent_id,
+            user_id=user_id,
+            input=user_input,
+            status='running',
+            parent_execution_id=execution_id  # 关联父对话
+        )
+        db.session.add(execution)
+        db.session.commit()
+
+        try:
+            # 调用AI服务（传入历史）
+            ai_response, _ = TongyiService.generate_response(
+                agent=agent,
+                user_input=user_input,
+                history_messages=history_messages  # 新增参数
+            )
+
+            # 更新执行结果
+            execution.output = ai_response
+            execution.status = 'completed'
+            db.session.commit()
+
+            return ai_response, execution
+
+        except Exception as e:
+            execution.status = 'failed'
+            db.session.commit()
+            raise
