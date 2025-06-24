@@ -73,7 +73,7 @@ CREATE TABLE `agent_execution` (
   `end_time` datetime DEFAULT NULL,
   `agent_id` int NOT NULL,
   `user_id` int NOT NULL,
-  `parent_execution_id` int DEFAULT NULL,  -- 新增的自引用外键字段
+  `parent_execution_id` int DEFAULT NULL,  
   PRIMARY KEY (`id`),
   KEY `agent_id` (`agent_id`),
   KEY `user_id` (`user_id`),
@@ -94,3 +94,9 @@ CREATE TABLE `agent_version` (
   KEY `agent_id` (`agent_id`),
   CONSTRAINT `agent_versions_ibfk_1` FOREIGN KEY (`agent_id`) REFERENCES `agents` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+
+2025/6/23 
+
+pip install transformers torch

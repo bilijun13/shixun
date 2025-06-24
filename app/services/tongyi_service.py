@@ -6,7 +6,6 @@ from app.models import AgentExecution, Agent
 from dataclasses import dataclass
 from typing import List, Optional
 
-
 @dataclass
 class Message:
     """符合dashscope要求的消息类型"""
@@ -27,56 +26,32 @@ class TongyiService:
             agent: Agent,
             user_input: str,
             execution_id: Optional[int] = None,
-            history_messages: Optional[List[dict]] = None,
-            max_history_turns: int = 3  # 新增参数控制历史轮数
+            history_messages: Optional[List[Message]] = None,
+            max_history_turns: int = 3
     ):
-        """
-        增强版多轮对话支持
-        """
+        """增强版多轮对话支持（类型安全版本）"""
+        messages = []
+        execution = None
         try:
-            # 消息组装逻辑优化
-            messages = [{"role": "system", "content": agent.system_prompt}]
-
-            # 添加历史消息（优先级：直接传入 > 数据库查询）
-            if history_messages:
-                messages.extend(history_messages)
-            elif execution_id:
-                messages.extend(
-                    TongyiService._get_conversation_history(
-                        execution_id,
-                        max_turns=max_history_turns
-                    )
-                )
-
-            # 添加当前用户输入
-            messages.append({"role": "user", "content": user_input})
+            # 初始化消息列表（系统提示）
+            messages = TongyiService.generate_context_messages(agent, user_input, execution_id, history_messages, max_history_turns)
 
             # 创建执行记录
-            execution = AgentExecution(
-                agent_id=agent.id,
-                user_id=agent.user_id,
-                input=user_input,
-                status='processing',
-                parent_execution_id=execution_id
-            )
+            execution = TongyiService.create_execution_record(agent, user_input, execution_id)
             db.session.add(execution)
-            db.session.flush()  # 先获取execution.id但不提交
+            db.session.flush()
 
-            # API调用
-            response = Generation.call(
-                model=agent.model,
-                messages=messages,
-                temperature=agent.temperature,
-                max_tokens=agent.max_tokens or 1500
-            )
+            # 调用大模型接口
+            dashscope_messages = TongyiService.convert_messages_to_dashscope_format(messages)
+            response = TongyiService.call_model_api(agent, dashscope_messages)
 
-            # 处理响应
-            execution.output = response.output.text
-            execution.status = 'completed'
-            execution.end_time = datetime.utcnow()
+            ai_response = response.output.text
+
+            # 更新执行记录
+            TongyiService.update_execution_record(execution, ai_response)
+
             db.session.commit()
-
-            return response.output.text, execution
+            return ai_response
 
         except Exception as e:
             db.session.rollback()
@@ -85,28 +60,67 @@ class TongyiService:
                 execution.output = str(e)
                 db.session.commit()
             raise
+    @staticmethod
+    def generate_context_messages(
+            agent: Agent,
+            user_input: str,
+            execution_id: Optional[int],
+            history_messages: Optional[List[Message]],
+            max_history_turns: int
+    ) -> List[Message]:
+        messages = [Message(role="system", content=agent.system_prompt)]
+
+        if history_messages:
+            messages.extend(history_messages)
+        elif execution_id:
+            history = TongyiService._get_conversation_history(execution_id, max_turns=max_history_turns)
+            messages.extend(history)
+
+        messages.append(Message(role="user", content=user_input))
+        return messages
+    @staticmethod
+    def create_execution_record(agent: Agent, user_input: str, execution_id: Optional[int]) -> AgentExecution:
+        return AgentExecution(
+            agent_id=agent.id,
+            user_id=agent.user_id,
+            input=user_input,
+            status='processing',
+            parent_execution_id=execution_id
+        )
+    @staticmethod
+    def convert_messages_to_dashscope_format(messages: List[Message]) -> List[dict]:
+        return [{"role": msg.role, "content": msg.content} for msg in messages]
+    @staticmethod
+    def call_model_api(agent: Agent, dashscope_messages: List[dict]):
+        temperature = max(0.0, min(1.0, agent.temperature)) if agent.temperature is not None else 0.7
+        max_tokens = agent.max_tokens if agent.max_tokens and agent.max_tokens > 0 else DEFAULT_MAX_TOKENS
+
+        return Generation.call(
+            model=agent.model,
+            messages=dashscope_messages,
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+    @staticmethod
+    def update_execution_record(execution: AgentExecution, ai_response: str):
+        execution.output = ai_response
+        execution.status = 'completed'
+        execution.end_time = datetime.utcnow()
 
     @staticmethod
-    def _get_conversation_history(execution_id: int, max_turns: int = 3) -> List[dict]:
-        """优化历史消息获取逻辑"""
+    def _get_conversation_history(execution_id: int, max_turns: int = 3) -> List[Message]:
+        """获取历史消息并转换为Message对象列表"""
         history = []
         current = AgentExecution.query.get(execution_id)
 
-        # 确保获取完整的对话轮次（user+assistant为一轮）
         while current and max_turns > 0:
-            if current.parent:  # 确保有父记录
-                # 添加AI回复（如果存在）
+            if current.parent:
+                # 将数据库记录转换为Message对象
                 if current.output:
-                    history.insert(0, {
-                        "role": "assistant",
-                        "content": current.output
-                    })
-                # 添加上一轮用户输入
-                history.insert(0, {
-                    "role": "user",
-                    "content": current.input
-                })
+                    history.insert(0, Message(role="assistant", content=current.output))
+                history.insert(0, Message(role="user", content=current.input))
                 max_turns -= 1
             current = current.parent
 
         return history
+

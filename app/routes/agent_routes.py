@@ -141,7 +141,7 @@ def execute_agent(agent_id):
             user_id=user_id,
             agent_id=agent_id,
             user_input=data['input'],
-            execution_id=data.get('execution_id')
+            parent_execution_id=data.get('parent_execution_id')
         )
 
         return jsonify({
