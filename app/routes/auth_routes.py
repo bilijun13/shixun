@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, set_access_cookies
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, set_access_cookies, \
+    create_refresh_token, set_refresh_cookies
 from app.services.auth_service import AuthService
 from app.utils.auth import validate_user_input
 from app.utils.cors_utils import build_cors_preflight_response
@@ -41,12 +42,16 @@ def login():
 
     # 在生成令牌时包含用户名信息
     access_token = create_access_token(identity=str(user.id), additional_claims={'username': user.username})
-    return jsonify({
+    refresh_token = create_refresh_token(identity=str(user.id))
+
+    response = jsonify({
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "user_id": user.id,
         "username": user.username,
         "is_admin": user.is_admin
-    }), 200
+    })
+    return response, 200
 
 
 @auth_bp.route('/center', methods=['GET'])
@@ -68,29 +73,24 @@ def get_current_user():
 @auth_bp.route('/refresh', methods=['POST', 'OPTIONS'])
 def refresh_token():
     if request.method == 'OPTIONS':
-        return _build_cors_preflight_response()  # 确保返回预检响应
+        return _build_cors_preflight_response()
 
-    # 只对 POST 请求进行 JWT 验证
+    # 从请求头中获取刷新令牌（需前端在请求头中携带）
     @jwt_required(refresh=True)
     def _refresh():
         try:
             current_user = get_jwt_identity()
-            new_token = create_access_token(identity=current_user)
+            new_access_token = create_access_token(identity=current_user)
 
-            response = jsonify({
-                "access_token": new_token,
+            return jsonify({
+                "access_token": new_access_token,
                 "msg": "Token refreshed"
-            })
-
-            # 如果使用 Cookie 方案
-            set_access_cookies(response, new_token)
-            return response, 200
+            }), 200
 
         except Exception as e:
-            print(str(e))
             return jsonify({"msg": "Refresh failed", "error": str(e)}), 401
 
-    return _refresh()  # 调用内部函数进行实际处理
+    return _refresh()
 
 
 def _build_cors_preflight_response():

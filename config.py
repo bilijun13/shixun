@@ -10,14 +10,29 @@ load_dotenv()
 class Config:
     # 安全配置
     SECRET_KEY = os.getenv('SECRET_KEY')
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
+
+
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'fallback-secret-key')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
-    JWT_TOKEN_LOCATION = ['cookies', 'headers']  # 双保险
+    JWT_TOKEN_LOCATION = ['headers']  # 双保险
     JWT_COOKIE_SECURE = False  # 开发环境为 False，生产环境必须 True
     JWT_COOKIE_HTTPONLY = True
     JWT_COOKIE_CSRF_PROTECT = False
-    JWT_REFRESH_COOKIE_PATH = '/auth/refresh'
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+    JWT_ACCESS_COOKIE_NAME = 'access_token_cookie'  # 明确命名
+    JWT_REFRESH_COOKIE_NAME = 'refresh_token_cookie'
+    JWT_COOKIE_DOMAIN = 'localhost'
+    # 确保 Cookie 路径正确
+    JWT_ACCESS_COOKIE_PATH = '/'
+    JWT_REFRESH_COOKIE_PATH = '/'
+
+    # JWT增强配置
+
+    JWT_COOKIE_SAMESITE = 'Lax'  # 平衡安全与跨站请求
+    JWT_HEADER_NAME = 'Authorization'
+    JWT_HEADER_TYPE = 'Bearer'
+
+
 
     # OpenAI
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')

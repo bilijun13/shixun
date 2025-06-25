@@ -158,7 +158,7 @@ def execute_agent(agent_id):
 
         return jsonify({
             "success": True,
-            "output": response_text,
+            "response_text": response_text,
             "execution_id": execution.id,  # 确保返回 execution.id
             "status": execution.status
         }), 200
