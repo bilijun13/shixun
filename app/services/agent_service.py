@@ -136,42 +136,49 @@ class AgentService:
         if not agent:
             raise ValueError("Agent not found or access denied")
 
-
         try:
             # 获取对话历史（如果是多轮对话）
             history_message = []
             # 验证父级执行记录归属（如果存在）
             if parent_execution_id:
                 history = AgentExecution.query.filter_by(
-                    parent_execution_id=parent_execution_id,
+                    id=parent_execution_id,
                     user_id=user_id,
                     status='completed'
                 ).first()
                 if history and history.output:
                     history_message.extend([
-                        Message(
-                            role="user",
-                            content=history.input
-                        ),
-                        Message(
-                            role="assistant",
-                            content=history.output
-                        )
+                        Message(role="user", content=history.input),
+                        Message(role="assistant", content=history.output)
                     ])
 
-            # 调用AI服务
+            # 调用AI服务生成回复
             ai_response = TongyiService.generate_response(
                 agent=agent,
                 user_input=user_input,
-                history_messages=history_message,
-                execution_id=parent_execution_id
+                history_messages=history_message
             )
-            execution = AgentExecution.query.get(parent_execution_id)
+
+            # 如果是首次对话，则创建新执行记录
+            if parent_execution_id:
+                execution = AgentExecution.query.get(parent_execution_id)
+            else:
+                execution = AgentExecution(
+                    agent_id=agent_id,
+                    user_id=user_id,
+                    input=user_input,
+                    output=ai_response,
+                    status='completed',
+                    parent_execution_id=None
+                )
+                db.session.add(execution)
+                db.session.commit()
 
             return ai_response, execution
 
         except Exception as e:
-            execution.status = 'failed'
-            execution.error_message = str(e)
-            db.session.commit()
+            if execution:
+                execution.status = 'failed'
+                execution.error_message = str(e)
+                db.session.commit()
             raise

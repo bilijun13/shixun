@@ -139,18 +139,20 @@ def execute_agent(agent_id):
     if not data or 'input' not in data:
         return jsonify({"error": "Missing input"}), 400
 
+    parent_execution_id = data.get('parent_execution_id')
+
     try:
         response_text, execution = AgentService.execute_agent(
             user_id=user_id,
             agent_id=agent_id,
             user_input=data['input'],
-            parent_execution_id=data.get('parent_execution_id')
+            parent_execution_id=parent_execution_id
         )
 
         return jsonify({
             "success": True,
             "output": response_text,
-            "execution_id": execution.id,
+            "execution_id": execution.id,  # 确保返回 execution.id
             "status": execution.status
         }), 200
 
@@ -159,6 +161,7 @@ def execute_agent(agent_id):
             "success": False,
             "error": str(e)
         }), 500
+
 
 
 @agent_bp.route('/models', methods=['GET'])
