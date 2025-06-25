@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, set_access_cookies
 from app.services.auth_service import AuthService
 from app.utils.auth import validate_user_input
 from app.utils.cors_utils import build_cors_preflight_response
@@ -64,11 +64,39 @@ def get_current_user():
         "is_admin": user.is_admin
     }), 200
 
-@auth_bp.route('/refresh', methods=['POST'])
-@jwt_required(refresh=True)
+
+@auth_bp.route('/refresh', methods=['POST', 'OPTIONS'])
 def refresh_token():
     if request.method == 'OPTIONS':
-        return build_cors_preflight_response()
-    current_user = get_jwt_identity()
-    new_token = create_access_token(identity=current_user)
-    return jsonify(access_token=new_token), 200
+        return _build_cors_preflight_response()  # 确保返回预检响应
+
+    # 只对 POST 请求进行 JWT 验证
+    @jwt_required(refresh=True)
+    def _refresh():
+        try:
+            current_user = get_jwt_identity()
+            new_token = create_access_token(identity=current_user)
+
+            response = jsonify({
+                "access_token": new_token,
+                "msg": "Token refreshed"
+            })
+
+            # 如果使用 Cookie 方案
+            set_access_cookies(response, new_token)
+            return response, 200
+
+        except Exception as e:
+            print(str(e))
+            return jsonify({"msg": "Refresh failed", "error": str(e)}), 401
+
+    return _refresh()  # 调用内部函数进行实际处理
+
+
+def _build_cors_preflight_response():
+    response = jsonify({"msg": "Preflight OK"})
+    response.headers.add("Access-Control-Allow-Origin", "http://localhost:5173")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+    response.headers.add("Access-Control-Allow-Methods", "POST,OPTIONS")
+    response.headers.add("Access-Control-Allow-Credentials", "true")
+    return response

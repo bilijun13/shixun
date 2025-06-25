@@ -12,6 +12,12 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY')
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    JWT_TOKEN_LOCATION = ['cookies', 'headers']  # 双保险
+    JWT_COOKIE_SECURE = False  # 开发环境为 False，生产环境必须 True
+    JWT_COOKIE_HTTPONLY = True
+    JWT_COOKIE_CSRF_PROTECT = False
+    JWT_REFRESH_COOKIE_PATH = '/auth/refresh'
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 
     # OpenAI
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')

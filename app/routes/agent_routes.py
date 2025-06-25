@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_cors import CORS
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app import TongyiService
@@ -7,7 +8,13 @@ from app.services.agent_service import AgentService
 from app.utils.cors_utils import build_cors_preflight_response
 
 agent_bp = Blueprint('agents', __name__)
-
+CORS(agent_bp,
+     origins=["http://localhost:5173"],
+     supports_credentials=True,
+     expose_headers=["Content-Type", "Authorization"],
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+     )
 
 # 示例：处理连续对话的路由
 @agent_bp.route('/chat', methods=['POST'])

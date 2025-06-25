@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -5,12 +7,17 @@ from app import create_app
 from config import Config
 
 app = create_app(Config)
-
+allowed_origins = [
+    "http://localhost:5173",
+    os.getenv("PRODUCTION_FRONTEND_URL", "")
+]
 # 配置CORS，支持凭证和特定来源
 CORS(app,
      origins=["http://localhost:5173"],
-     supports_credentials=True,  # 允许携带凭证
-     allow_headers=["Content-Type", "Authorization"]
+     supports_credentials=True,  # 必须为 True
+     expose_headers=["Content-Type","Authorization"],
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "OPTIONS","PUT", "DELETE"]
      )
 
 app.url_map.strict_slashes = False
