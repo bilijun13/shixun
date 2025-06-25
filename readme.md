@@ -92,7 +92,7 @@ CREATE TABLE `agent_version` (
   `agent_id` int NOT NULL,
   PRIMARY KEY (`id`),
   KEY `agent_id` (`agent_id`),
-  CONSTRAINT `agent_versions_ibfk_1` FOREIGN KEY (`agent_id`) REFERENCES `agents` (`id`) ON DELETE CASCADE
+  CONSTRAINT `agent_versions_ibfk_1` FOREIGN KEY (`agent_id`) REFERENCES `agent` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
