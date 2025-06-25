@@ -39,7 +39,8 @@ def login():
     if not user:
         return jsonify({"error": "Invalid credentials"}), 401
 
-    access_token = create_access_token(identity=str(user.id))
+    # 在生成令牌时包含用户名信息
+    access_token = create_access_token(identity=str(user.id), additional_claims={'username': user.username})
     return jsonify({
         "access_token": access_token,
         "user_id": user.id,
@@ -48,7 +49,7 @@ def login():
     }), 200
 
 
-@auth_bp.route('/me', methods=['GET'])
+@auth_bp.route('/center', methods=['GET'])
 @jwt_required()
 def get_current_user():
     user_id = get_jwt_identity()
