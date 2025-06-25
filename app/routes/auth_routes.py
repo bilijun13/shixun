@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app.services.auth_service import AuthService
 from app.utils.auth import validate_user_input
+from app.utils.cors_utils import build_cors_preflight_response
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -61,3 +62,12 @@ def get_current_user():
         "email": user.email,
         "is_admin": user.is_admin
     }), 200
+
+@auth_bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh_token():
+    if request.method == 'OPTIONS':
+        return build_cors_preflight_response()
+    current_user = get_jwt_identity()
+    new_token = create_access_token(identity=current_user)
+    return jsonify(access_token=new_token), 200

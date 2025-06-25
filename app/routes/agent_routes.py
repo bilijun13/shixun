@@ -4,6 +4,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import TongyiService
 from app.models import Agent, AgentExecution
 from app.services.agent_service import AgentService
+from app.utils.cors_utils import build_cors_preflight_response
 
 agent_bp = Blueprint('agents', __name__)
 
@@ -61,10 +62,12 @@ def create_agent():
 
     return jsonify(agent.to_dict()), 201
 
-
+@agent_bp.route('', methods=['GET'])
 @agent_bp.route('/', methods=['GET'])
 @jwt_required()
 def list_agents():
+    if request.method == 'OPTIONS':
+        return build_cors_preflight_response()
     user_id = get_jwt_identity()
     public = request.args.get('public', '').lower() == 'true'
 
