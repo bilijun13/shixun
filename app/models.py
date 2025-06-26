@@ -76,6 +76,11 @@ class AgentExecution(db.Model):
     agent_id = db.Column(db.Integer, db.ForeignKey('agent.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
+    agent_id = db.Column(
+        db.Integer,
+        db.ForeignKey('agent.id', ondelete='CASCADE'),  # 添加ondelete='CASCADE'
+        nullable=False
+    )
 
     # 明确定义自引用外键
     parent_execution_id = db.Column(

@@ -38,7 +38,8 @@ class AgentService:
         agent = Agent.query.filter_by(id=agent_id, user_id=user_id).first()
         if not agent:
             return False
-
+        # 手动删除所有关联的 AgentExecution
+        AgentExecution.query.filter_by(agent_id=agent_id).delete()
         db.session.delete(agent)
         db.session.commit()
         return True
