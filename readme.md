@@ -97,8 +97,8 @@ CREATE TABLE `agent_version` (
 
 CREATE TABLE `api` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `tongyi_api_key` varchar(255) NOT NULL COMMENT '通义API密钥',
-  `openai_api_key` varchar(255) NOT NULL COMMENT 'OpenAI API密钥',
+  `tongyi_api_key` varchar(255)  COMMENT '通义API密钥',
+  `openai_api_key` varchar(255)  COMMENT 'OpenAI API密钥',
   `user_id` int NOT NULL COMMENT '关联用户ID',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
