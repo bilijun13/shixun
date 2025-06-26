@@ -2,7 +2,7 @@ import os
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-
+from flask_login import current_user
 from app import create_app
 from config import Config
 

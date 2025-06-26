@@ -4,6 +4,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from app.services.auth_service import AuthService
 from app.utils.auth import validate_user_input
 from app.utils.cors_utils import build_cors_preflight_response
+from app.services.api_service import ApiService
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -78,42 +79,54 @@ def get_current_user():
         return jsonify({"error": "User not found"}), 404
 
     if request.method == 'GET':
+        # 获取用户API密钥（从数据库查询）
+        api_key = ApiService.get_api_key_by_user(user_id)
         return jsonify({
             "user_id": user.id,
             "username": user.username,
             "email": user.email,
-            "is_admin": user.is_admin
+            "is_admin": user.is_admin,
+            "api_keys": {
+                "tongyi_api_key": api_key.tongyi_api_key if api_key else "",
+                "openai_api_key": api_key.openai_api_key if api_key else ""
+            }
         }), 200
 
     elif request.method == 'POST':
         try:
-            # 解析JSON请求体
             data = request.get_json()
             if not data:
                 return jsonify({"error": "Invalid JSON format"}), 400
 
-            env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '.env')
+            update_data = {}
 
             # 更新OpenAI API密钥
             if 'openai_api_key' in data and data['openai_api_key']:
-                openai_api_key = data['openai_api_key']
-                set_key(env_path, 'OPENAI_API_KEY', openai_api_key)
+                update_data['openai_api_key'] = data['openai_api_key']
 
             # 更新通义千问API密钥
             if 'tongyi_api_key' in data and data['tongyi_api_key']:
-                tongyi_api_key = data['tongyi_api_key']
-                set_key(env_path, 'TONGYI_API_KEY', tongyi_api_key)
+                update_data['tongyi_api_key'] = data['tongyi_api_key']
 
-            # 重新加载环境变量
-            load_dotenv(env_path)
+            if not update_data:
+                return jsonify({"error": "No API keys provided for update"}), 400
 
-            return jsonify({"message": "API keys updated successfully"}), 200
+            # 调用API服务更新数据库记录
+            ApiService.update_api_key(user_id, update_data)
+
+            return jsonify({
+                "message": "API keys updated successfully",
+                "updated_keys": update_data
+            }), 200
 
         except json.JSONDecodeError:
             return jsonify({"error": "Invalid JSON format"}), 400
         except Exception as e:
             current_app.logger.error(f"Error in /auth/center: {str(e)}")
-            return jsonify({"error": "Failed to process request"}), 422
+            return jsonify({"error": "Failed to update API keys"}), 422
+
+
+
 
 @auth_bp.route('/refresh', methods=['POST', 'OPTIONS'])
 def refresh_token():

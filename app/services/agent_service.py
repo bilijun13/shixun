@@ -135,8 +135,9 @@ class AgentService:
         agent = Agent.query.filter_by(id=agent_id, user_id=user_id).first()
         if not agent:
             raise ValueError("Agent not found or access denied")
-
+        execution = None
         try:
+
             # 获取对话历史（如果是多轮对话）
             history_message = []
             # 验证父级执行记录归属（如果存在）
@@ -176,8 +177,9 @@ class AgentService:
 
             return ai_response, execution
 
+
         except Exception as e:
-            if execution:
+            if execution is not None:  # 安全检查
                 execution.status = 'failed'
                 execution.error_message = str(e)
                 db.session.commit()

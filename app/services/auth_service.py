@@ -1,7 +1,7 @@
 from flask_bcrypt import Bcrypt
 
 from app import TongyiService
-from app.models import User, AgentExecution, Agent
+from app.models import User, AgentExecution, Agent, Api
 from app.extensions import db
 from datetime import datetime
 
@@ -12,12 +12,14 @@ class AuthService:
     """用户认证服务类，处理所有与认证相关的业务逻辑"""
 
     @staticmethod
-    def register_user(username, email, password):
+    def register_user(username, email, password, tongyi_api_key=None, openai_api_key=None):
         """
-        注册新用户
+        注册新用户并在api表中创建初始记录（API密钥可为空）
         :param username: 用户名
         :param email: 邮箱
         :param password: 密码
+        :param tongyi_api_key: 通义API密钥（可选）
+        :param openai_api_key: OpenAI API密钥（可选）
         :return: 字典 {success: bool, message: str, user: User|None}
         """
         # 检查用户名或邮箱是否已存在
@@ -28,6 +30,7 @@ class AuthService:
             return {"success": False, "message": "邮箱已被注册"}
 
         try:
+            # 创建用户记录
             new_user = User(
                 username=username,
                 email=email,
@@ -36,12 +39,22 @@ class AuthService:
             )
             new_user.set_password(password)
 
+            # 开始数据库事务
             db.session.add(new_user)
+            db.session.flush()  # 刷新以获取new_user.id
+
+            # 创建API记录（API密钥默认置为空字符串）
+            api_record = Api(
+                user_id=new_user.id,
+                tongyi_api_key=tongyi_api_key or "",
+                openai_api_key=openai_api_key or ""
+            )
+            db.session.add(api_record)
             db.session.commit()
 
             return {
                 "success": True,
-                "message": "用户注册成功",
+                "message": "用户注册成功，API记录已创建",
                 "user": new_user
             }
         except Exception as e:

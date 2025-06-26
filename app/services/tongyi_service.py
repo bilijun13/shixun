@@ -2,7 +2,7 @@ import dashscope
 from dashscope import Generation
 from datetime import datetime
 from app.extensions import db
-from app.models import AgentExecution, Agent
+from app.models import AgentExecution, Agent, Api
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -15,11 +15,25 @@ class Message:
 
 class TongyiService:
     @staticmethod
-    def initialize(api_key, base_url=None):
-        """初始化通义API配置"""
-        dashscope.api_key = api_key
-        if base_url:
-            dashscope.base_url = base_url
+    def initialize_with_user_id(user_id: int, base_url=None):
+        """通过用户ID从数据库获取通义API密钥并初始化"""
+        try:
+            # 查询用户的API记录
+            api_record = Api.query.filter_by(user_id=user_id).first()
+            if not api_record:
+                raise ValueError(f"用户ID {user_id} 未找到API记录")
+
+            tongyi_api_key = api_record.tongyi_api_key
+            if not tongyi_api_key:
+                raise ValueError(f"用户ID {user_id} 的通义API密钥为空")
+
+            # 初始化通义API配置
+            dashscope.api_key = tongyi_api_key
+            if base_url:
+                dashscope.base_url = base_url
+            return True
+        except Exception as e:
+            raise RuntimeError(f"API初始化失败: {str(e)}") from e
 
     @staticmethod
     def generate_response(
@@ -33,6 +47,7 @@ class TongyiService:
         messages = []
         execution = None
         try:
+            TongyiService.initialize_with_user_id(agent.user_id)
             # 初始化消息列表（系统提示）
             messages = TongyiService.generate_context_messages(agent, user_input, execution_id, history_messages, max_history_turns)
 
@@ -45,6 +60,9 @@ class TongyiService:
             dashscope_messages = TongyiService.convert_messages_to_dashscope_format(messages)
             response = TongyiService.call_model_api(agent, dashscope_messages)
 
+            if not response or not hasattr(response, 'output') or not hasattr(response.output, 'text'):
+                raise ValueError("AI模型返回结果为空，请检查输入内容或API密钥")
+
             ai_response = response.output.text
 
             # 更新执行记录
@@ -53,9 +71,10 @@ class TongyiService:
             db.session.commit()
             return ai_response
 
+
         except Exception as e:
             db.session.rollback()
-            if 'execution' in locals():
+            if execution is not None:  # 先判断是否已创建执行记录
                 execution.status = 'failed'
                 execution.output = str(e)
                 db.session.commit()

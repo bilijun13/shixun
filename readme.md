@@ -95,6 +95,19 @@ CREATE TABLE `agent_version` (
   CONSTRAINT `agent_versions_ibfk_1` FOREIGN KEY (`agent_id`) REFERENCES `agent` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE `api` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `tongyi_api_key` varchar(255) NOT NULL COMMENT '通义API密钥',
+  `openai_api_key` varchar(255) NOT NULL COMMENT 'OpenAI API密钥',
+  `user_id` int NOT NULL COMMENT '关联用户ID',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `user_id` (`user_id`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `fk_api_user` FOREIGN KEY (`user_id`) 
+    REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户API密钥表';
 
 
 2025/6/23 
